@@ -2,7 +2,9 @@ import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.util.Scanner;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 
 public class App {
@@ -19,8 +21,17 @@ public class App {
     /** Quantidade de produtos cadastrados atualmente no vetor */
     static int quantosProdutos = 0;
 
-    /** Pilha de pedidos */
+    /** Pilha de pedidos (usada para rastrear produtos mais recentes) */
     static Pilha<Pedido> pilhaPedidos = new Pilha<>();
+
+    /** Pilha de produtos mais recentemente pedidos */
+    static Pilha<Produto> pilhaProdutosRecentes = new Pilha<>();
+
+    /** Fila de pedidos finalizados aguardando processamento */
+    static Fila<Pedido> filaPedidos = new Fila<>();
+
+    /** Nome do arquivo onde os pedidos finalizados são persistidos */
+    static final String NOME_ARQUIVO_PEDIDOS = "pedidos.txt";
         
     static void limparTela() {
         System.out.print("\033[H\033[2J");
@@ -64,6 +75,7 @@ public class App {
         System.out.println("4 - Iniciar novo pedido");
         System.out.println("5 - Fechar pedido");
         System.out.println("6 - Listar produtos dos pedidos mais recentes");
+        System.out.println("7 - Processar lote de pedidos da fila");
         System.out.println("0 - Sair");
         System.out.print("Digite sua opção: ");
         return Integer.parseInt(teclado.nextLine());
@@ -205,22 +217,147 @@ public class App {
     }
     
     /**
-     * Finaliza um pedido, momento no qual ele deve ser armazenado em uma pilha de pedidos.
+     * Finaliza um pedido: armazena na pilha de pedidos (para rastreamento de produtos
+     * recentes), enfileira na fila de pedidos (aguardando processamento) e empilha
+     * os produtos na pilha de produtos recentes.
      * @param pedido O pedido que deve ser finalizado.
      */
     public static void finalizarPedido(Pedido pedido) {
-    	
-    	// TODO
+
+        if (pedido == null) {
+            System.out.println("Nenhum pedido em andamento para finalizar.");
+            return;
+        }
+
+        pilhaPedidos.empilhar(pedido);
+        filaPedidos.enfileirar(pedido);
+
+        // Empilha os produtos do pedido na pilha de produtos recentes
+        ItemDePedido[] itens = pedido.getItensDoPedido();
+        int numItens = pedido.getQuantItensDePedido();
+        for (int i = 0; i < numItens; i++) {
+            pilhaProdutosRecentes.empilhar(itens[i].getProduto());
+        }
+
+        System.out.println("Pedido finalizado com sucesso!");
+        System.out.println(pedido.toString());
     }
-    
+
+    /**
+     * Extrai um lote de K pedidos do início da fila (os mais antigos) e os exibe.
+     * Usa o método extrairLote da classe Fila.
+     */
+    public static void processarLoteDePedidos() {
+
+        if (filaPedidos.vazia()) {
+            System.out.println("Não há pedidos na fila aguardando processamento.");
+            return;
+        }
+
+        int k = lerOpcao("Quantos pedidos deseja processar do início da fila (K)?", Integer.class);
+
+        Fila<Pedido> lote = filaPedidos.extrairLote(k);
+        cabecalho();
+        System.out.println("\n=== LOTE DE PEDIDOS PROCESSADOS ===");
+        while (!lote.vazia()) {
+            System.out.println(lote.desenfileirar());
+            System.out.println();
+        }
+    }
+
     public static void listarProdutosPedidosRecentes() {
-    	
-    	// TODO
+
+        if (pilhaProdutosRecentes.vazia()) {
+            System.out.println("Nenhum produto pedido ainda.");
+            return;
+        }
+
+        int k = lerOpcao("Quantos produtos recentes deseja visualizar (K)?", Integer.class);
+
+        try {
+            Pilha<Produto> subPilha = pilhaProdutosRecentes.subPilha(k);
+            cabecalho();
+            System.out.println("\n=== " + k + " PRODUTO(S) MAIS RECENTEMENTE PEDIDO(S) ===");
+            while (!subPilha.vazia()) {
+                System.out.println(subPilha.desempilhar());
+            }
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Salva todos os pedidos pendentes na fila em arquivo texto, na ordem de chegada.
+     * Os pedidos são extraídos da fila durante o salvamento (ocorre ao encerrar a aplicação).
+     * @param nomeArquivo Nome do arquivo de destino.
+     */
+    static void salvarPedidos(String nomeArquivo) {
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(nomeArquivo, Charset.forName("UTF-8")))) {
+            while (!filaPedidos.vazia()) {
+                writer.println(filaPedidos.desenfileirar().toString());
+                writer.println();
+            }
+            System.out.println("Pedidos salvos em \"" + nomeArquivo + "\".");
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar pedidos: " + e.getMessage());
+        }
     }
     
 	public static void main(String[] args) {
 		
 		teclado = new Scanner(System.in, Charset.forName("UTF-8"));
+
+        // ============================================================
+        // TAREFA 1 — Teste com os dígitos da matrícula 660971 (sem repetição)
+        // Dígitos únicos na ordem de aparição: 6, 0, 9, 7, 1
+        // ============================================================
+        Pilha<Integer> pilhaTeste = new Pilha<>();
+        String matricula = "660971";
+        boolean[] digitoInserido = new boolean[10];
+
+        System.out.println("=== TAREFA 1: Inserção dos dígitos da matrícula na pilha ===");
+        for (char c : matricula.toCharArray()) {
+            int digito = c - '0';
+            if (!digitoInserido[digito]) {
+                pilhaTeste.empilhar(digito);
+                digitoInserido[digito] = true;
+                System.out.println("Empilhado: " + digito);
+            } else {
+                System.out.println("Dígito " + digito + " ignorado (repetido)");
+            }
+        }
+        System.out.println("Conteúdo da pilha (topo -> fundo): " + pilhaTeste);
+
+        // Teste de desempilhar
+        System.out.println("Desempilhando topo: " + pilhaTeste.desempilhar());
+        System.out.println("Pilha após desempilhar:            " + pilhaTeste);
+        System.out.println("============================================================\n");
+        // ============================================================
+
+        // ============================================================
+        // TAREFA 1 — FILA — Teste com os caracteres do nome "Guilherme Roberto"
+        // ============================================================
+        Fila<Character> filaTeste = new Fila<>();
+        String nome = "Guilherme Roberto";
+
+        System.out.println("=== TAREFA 1 FILA: Inserção dos caracteres do nome na fila ===");
+        for (char c : nome.toCharArray()) {
+            filaTeste.enfileirar(c);
+            System.out.println("Enfileirado: '" + c + "'");
+        }
+        System.out.println("Conteúdo da fila (início -> fim): " + filaTeste);
+
+        // Teste de contarOcorrencias
+        char charContagem = 'e';
+        System.out.println("Ocorrências de '" + charContagem + "' na fila: "
+                + filaTeste.contarOcorrencias(charContagem));
+
+        // Teste de desenfileirar
+        System.out.println("Desenfileirando início: '" + filaTeste.desenfileirar() + "'");
+        System.out.println("Fila após desenfileirar:           " + filaTeste);
+        System.out.println("============================================================\n");
+        // ============================================================
         
 		nomeArquivoDados = "produtos.txt";
         produtosCadastrados = lerProdutos(nomeArquivoDados);
@@ -238,9 +375,15 @@ public class App {
                 case 4 -> pedido = iniciarPedido();
                 case 5 -> finalizarPedido(pedido);
                 case 6 -> listarProdutosPedidosRecentes();
+                case 7 -> processarLoteDePedidos();
             }
             pausa();
-        }while(opcao != 0);       
+        }while(opcao != 0);
+
+        // Salva os pedidos finalizados ao encerrar a aplicação
+        if (!filaPedidos.vazia()) {
+            salvarPedidos(NOME_ARQUIVO_PEDIDOS);
+        }
 
         teclado.close();    
     }
