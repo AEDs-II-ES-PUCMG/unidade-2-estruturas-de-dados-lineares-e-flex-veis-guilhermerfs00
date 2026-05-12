@@ -53,50 +53,30 @@ public class Pilha<E> {
 	 * @throws IllegalArgumentException se a pilha não contém numItens elementos.
 	 */
 	public Pilha<E> subPilha(int numItens) {
-
-		// Conta os elementos disponíveis
-		int count = 0;
-		Celula<E> atual = topo;
-		while (atual != fundo) {
-			count++;
-			atual = atual.getProximo();
-		}
-
-		if (count < numItens) {
-			throw new IllegalArgumentException(
-				"A pilha possui apenas " + count + " elemento(s); não é possível criar subpilha com " + numItens + ".");
-		}
-
-		// Coleta os numItens elementos do topo em um array
-		@SuppressWarnings("unchecked")
-		E[] elementos = (E[]) new Object[numItens];
-		atual = topo;
-		for (int i = 0; i < numItens; i++) {
-			elementos[i] = atual.getItem();
-			atual = atual.getProximo();
-		}
-
-		// Empilha em ordem inversa para que o topo original continue no topo da subpilha
-		Pilha<E> sub = new Pilha<>();
-		for (int i = numItens - 1; i >= 0; i--) {
-			sub.empilhar(elementos[i]);
-		}
-
-		return sub;
+		
+		// TODO
+		return null;
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder("[");
-		Celula<E> atual = topo;
-		while (atual != fundo) {
-			sb.append(atual.getItem());
-			if (atual.getProximo() != fundo) {
-				sb.append(", ");
-			}
-			atual = atual.getProximo();
+	void imprimir() {
+		if(vazia()){
+			throw new NoSuchElementException("A pilha está vazia!");
 		}
-		sb.append("]");
-		return sb.toString();
+		Celula<E> aux = topo;
+		while(aux!=fundo){
+			System.out.println(aux.getItem());
+			aux = aux.getProximo();
+		}
+
+	}
+	void imprime_certo(){
+		Celula<E> atual = topo;
+		certo(atual);
+	}
+	void certo(Celula<E> atual){
+		if(atual!=fundo){
+			certo(atual.getProximo());
+			System.out.println(atual.getItem());
+		}
 	}
 }

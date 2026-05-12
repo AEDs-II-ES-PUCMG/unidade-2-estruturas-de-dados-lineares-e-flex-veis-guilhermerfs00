@@ -1,88 +1,81 @@
 import java.util.NoSuchElementException;
 
 public class Fila<E> {
+    private Celula<E> frente;
+    private Celula<E> tras;
 
-    private Celula<E> inicio;
-    private Celula<E> fim;
+    Fila() {
 
-    public Fila() {
-        Celula<E> sentinela = new Celula<>();
-        inicio = sentinela;
-        fim = sentinela;
+        Celula<E> sentinela = new Celula<E>();
+        frente = tras = sentinela;
     }
 
     public boolean vazia() {
-        return inicio == fim;
+
+        return (frente == tras);
     }
 
     public void enfileirar(E item) {
-        fim.setProximo(new Celula<>(item));
-        fim = fim.getProximo();
+
+        Celula<E> novaCelula = new Celula<E>(item);
+
+        tras.setProximo(novaCelula);
+        tras = tras.getProximo();
     }
 
     public E desenfileirar() {
-        E item = consultarInicio();
-        inicio = inicio.getProximo();
+
+        E item = null;
+        Celula<E> primeiro;
+
+        item = consultarPrimeiro();
+
+        primeiro = frente.getProximo();
+        frente.setProximo(primeiro.getProximo());
+
+        primeiro.setProximo(null);
+
+        // Caso o item desenfileirado seja também o último da fila.
+        if (primeiro == tras)
+            tras = frente;
+
         return item;
     }
 
-    public E consultarInicio() {
+    public E consultarPrimeiro() {
+
         if (vazia()) {
-            throw new NoSuchElementException("Não há nenhum item na fila!");
+            throw new NoSuchElementException("Nao há nenhum item na fila!");
         }
-        return inicio.getProximo().getItem();
+
+        return frente.getProximo().getItem();
+
     }
 
-    /**
-     * Percorre todos os elementos da fila e conta quantas vezes o elemento
-     * informado aparece, usando equals() para comparação.
-     *
-     * @param elemento O elemento cujas ocorrências serão contadas.
-     * @return O número de ocorrências do elemento na fila.
-     */
-    public int contarOcorrencias(E elemento) {
-        int contagem = 0;
-        Celula<E> atual = inicio.getProximo();
-        while (atual != null) {
-            if (elemento.equals(atual.getItem())) {
-                contagem++;
+    public int cont_ocorrencias(E item){
+        Celula<E> atual = frente.getProximo();
+        int cont = 0;
+        while(atual!=null){
+            if(atual.getItem() == item){
+                cont++;
             }
             atual = atual.getProximo();
         }
-        return contagem;
+        return cont;
     }
 
-    /**
-     * Desenfileira os primeiros numItens elementos da fila atual, respeitando a
-     * ordem de chegada, e os retorna estruturados em uma nova Fila flexível.
-     * Caso a fila original possua menos de numItens itens, extrai apenas os
-     * disponíveis, esvaziando a fila de origem.
-     *
-     * @param numItens Número máximo de itens a extrair.
-     * @return Uma nova Fila contendo os elementos extraídos na mesma ordem.
-     */
-    public Fila<E> extrairLote(int numItens) {
-        Fila<E> lote = new Fila<>();
-        int extraidos = 0;
-        while (!vazia() && extraidos < numItens) {
-            lote.enfileirar(desenfileirar());
-            extraidos++;
-        }
-        return lote;
-    }
+    public void imprimir() {
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("[");
-        Celula<E> atual = inicio.getProximo();
-        while (atual != null) {
-            sb.append(atual.getItem());
-            if (atual.getProximo() != null) {
-                sb.append(", ");
+        Celula<E> aux;
+
+        if (vazia())
+            System.out.println("A fila está vazia!");
+        else {
+            aux = this.frente.getProximo();
+            while (aux != null) {
+                System.out.println(aux.getItem());
+                aux = aux.getProximo();
             }
-            atual = atual.getProximo();
         }
-        sb.append("]");
-        return sb.toString();
     }
 }
